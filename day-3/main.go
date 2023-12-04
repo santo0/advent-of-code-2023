@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-const INPUT_FILE = "test.txt"
+const INPUT_FILE = "input_1.txt"
 
 type position struct {
 	char rune
@@ -18,6 +18,35 @@ type position struct {
 type PositionRange struct {
 	positions []position
 	number    int
+}
+
+func (this PositionRange) equals(other PositionRange) bool {
+	if len(this.positions) != len(other.positions) || this.number != other.number {
+		return false
+	}
+	for _, a := range this.positions {
+		aEqual := false
+		for _, b := range other.positions {
+			if a.char == b.char && a.i == b.i && a.j == b.j {
+				aEqual = true
+			}
+		}
+		if !aEqual {
+			return false
+		}
+	}
+	for _, a := range other.positions {
+		aEqual := false
+		for _, b := range this.positions {
+			if a.char == b.char && a.i == b.i && a.j == b.j {
+				aEqual = true
+			}
+		}
+		if !aEqual {
+			return false
+		}
+	}
+	return true
 }
 
 func getNumberInPositionRange(positions []position) int {
@@ -63,7 +92,6 @@ func p1() {
 	scanner := bufio.NewScanner(file)
 	result := 0
 	i := 0
-	// I need a way to know positions already calculated (or i can remove positions already validated)
 	lastLineSyms := make([]position, 0)
 	currentLineSyms := make([]position, 0)
 	lastLineNums := make([]PositionRange, 0)
@@ -156,7 +184,8 @@ func p2() {
 	scanner := bufio.NewScanner(file)
 	result := 0
 	i := 0
-	// I need a way to know positions already calculated (or i can remove positions already validated)
+	var gearMap = map[position][]PositionRange{}
+
 	lastLineSyms := make([]position, 0)
 	currentLineSyms := make([]position, 0)
 	lastLineNums := make([]PositionRange, 0)
@@ -189,42 +218,60 @@ func p2() {
 			numDetected = false
 		}
 
-		// when finished seq numbers, isAdjacent?
-		rangeToRemove := make([]PositionRange, 0)
-		for _, currentRange := range currentLineNums {
-			// optimizations can be done (we know that lastLine can't be in same i or j+1 and currentLine always has same i)
-			if isRangeAdjacent(currentRange, lastLineSyms) || isRangeAdjacent(currentRange, currentLineSyms) {
-				// calculate number in srcPositions
-				rangeToRemove = append(rangeToRemove, currentRange)
-				// log number
-				log.Println("Number=", currentRange.number)
-				// add number in result
-				result += currentRange.number
-			}
-		}
-		for _, rangeToDel := range rangeToRemove {
-			indexToDel := -1
-			for i, aRange := range currentLineNums {
-				if &rangeToDel == &aRange {
-					indexToDel = i
-					break
+		for _, symPos := range currentLineSyms {
+			if symPos.char == '*' {
+				for _, lastRange := range lastLineNums {
+					if isRangeAdjacent(lastRange, []position{symPos}) {
+						numSlice, ok := gearMap[symPos]
+						if ok {
+							gearMap[symPos] = append(numSlice, lastRange)
+						} else {
+							gearMap[symPos] = []PositionRange{lastRange}
+						}
+
+					}
 				}
-			}
-			if indexToDel >= 0 {
-				currentLineNums = append(currentLineNums[:indexToDel], currentLineNums[indexToDel+1:]...)
-			}
-		}
-		for _, lastRange := range lastLineNums {
-			if isRangeAdjacent(lastRange, currentLineSyms) {
-				// calculate number in srcPositions
-				// log number
-				log.Println("Number=", lastRange.number)
-				// add number in result
-				result += lastRange.number
+				for _, currentRange := range currentLineNums {
+					if isRangeAdjacent(currentRange, []position{symPos}) {
+						numSlice, ok := gearMap[symPos]
+						if ok {
+							gearMap[symPos] = append(numSlice, currentRange)
+						} else {
+							gearMap[symPos] = []PositionRange{currentRange}
+						}
+
+					}
+				}
 			}
 		}
 
-		//lo mateix pero amb syms
+		for _, symPos := range lastLineSyms {
+			if symPos.char == '*' {
+				for _, lastRange := range lastLineNums {
+					if isRangeAdjacent(lastRange, []position{symPos}) {
+						numSlice, ok := gearMap[symPos]
+						if ok {
+							gearMap[symPos] = append(numSlice, lastRange)
+						} else {
+							gearMap[symPos] = []PositionRange{lastRange}
+						}
+
+					}
+				}
+				for _, currentRange := range currentLineNums {
+					if isRangeAdjacent(currentRange, []position{symPos}) {
+						numSlice, ok := gearMap[symPos]
+						if ok {
+							gearMap[symPos] = append(numSlice, currentRange)
+						} else {
+							gearMap[symPos] = []PositionRange{currentRange}
+						}
+
+					}
+				}
+			}
+		}
+
 		lastLineSyms = currentLineSyms
 		lastLineNums = currentLineNums
 		currentLineSyms = make([]position, 0)
@@ -232,6 +279,25 @@ func p2() {
 		i += 1
 	}
 
+	for gear, numSlice := range gearMap {
+		var uniqueNums = []PositionRange{}
+		for _, num := range numSlice {
+			isUnique := true
+			for _, eNum := range uniqueNums {
+				if num.equals(eNum) {
+					isUnique = false
+					break
+				}
+			}
+			if isUnique {
+				uniqueNums = append(uniqueNums, num)
+			}
+		}
+		log.Println(gear, len(uniqueNums))
+		if len(uniqueNums) == 2 {
+			result += uniqueNums[0].number * uniqueNums[1].number
+		}
+	}
 	log.Println("RESULT=", result)
 
 	if err := scanner.Err(); err != nil {
