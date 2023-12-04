@@ -20,13 +20,13 @@ type PositionRange struct {
 	number    int
 }
 
-func (this PositionRange) equals(other PositionRange) bool {
-	if len(this.positions) != len(other.positions) || this.number != other.number {
+func (t PositionRange) equals(o PositionRange) bool {
+	if len(t.positions) != len(o.positions) || t.number != o.number {
 		return false
 	}
-	for _, a := range this.positions {
+	for _, a := range t.positions {
 		aEqual := false
-		for _, b := range other.positions {
+		for _, b := range o.positions {
 			if a.char == b.char && a.i == b.i && a.j == b.j {
 				aEqual = true
 			}
@@ -35,9 +35,9 @@ func (this PositionRange) equals(other PositionRange) bool {
 			return false
 		}
 	}
-	for _, a := range other.positions {
+	for _, a := range o.positions {
 		aEqual := false
-		for _, b := range this.positions {
+		for _, b := range t.positions {
 			if a.char == b.char && a.i == b.i && a.j == b.j {
 				aEqual = true
 			}
@@ -306,6 +306,6 @@ func p2() {
 }
 
 func main() {
-	//p1()
+	p1()
 	p2()
 }
